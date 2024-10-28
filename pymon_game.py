@@ -131,10 +131,18 @@ class Record:
                 location_name = line_field[0].strip()
                 description = line_field[1].strip()
                 print(line_field[2])
-                west = line_field[2].split(" = ")[1].strip() 
+                west = line_field[2].split(" = ")[1].strip()
+                west = None if west == "None" else west
+
                 north = line_field[3].split(" = ")[1].strip()
+                north = None if north == "None" else north
+
                 east = line_field[4].split(" = ")[1].strip()
+                east = None if east == "None" else east
+
                 south = line_field[5].split(" = ")[1].strip()
+                south = None if south == "None" else south
+                
                 new_location = Location(location_name,  description, west, north, east, south)
                 self.locations.append(new_location)
                 location_connect[location_name] = new_location
