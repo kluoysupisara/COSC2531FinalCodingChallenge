@@ -6,7 +6,7 @@ Pymon skeleton game
 Please make modifications to all the classes to match with requirements provided in the assignment spec document
 @author: dipto
 @student_id : S4071833
-@highest_level_attempted (P/C/D/HD):
+@highest_level_attempted (P/C/D/HD): HD
 
 - Reflection:
 - Reference:
@@ -21,9 +21,23 @@ def generate_random_number(max_number = 1):
     return r 
 
 
-class Pymon:
+class Creature:
+    def __init__(self, nickname, description, can_be_pymon=False):
+        self.name = nickname
+        self.description = description
+        self.can_be_pymon = can_be_pymon
+
+    def set_location(self, new_location):
+        self.location = new_location
+
+    def get_location(self):
+        return self.location
+    def get_name(self):
+        return self.name
+
+class Pymon(Creature):
     def __init__(self, name = "The player"):
-        self.name = name
+        super().__init__(name, description="", can_be_pymon=True)
         self.current_location = None
         self.energy = 3 # Initail energy 3/3
         self.max_energy = 3 # maximun energy
@@ -31,11 +45,10 @@ class Pymon:
     def move(self, direction = None):
         if self.current_location != None:
             if self.current_location.doors[direction] != None:
-                #self.current_location.doors[direction].add_creature(self)  
-                #self.current_location.creatures.remove(self)
+                self.current_location.doors[direction].add_creature(self)  
+                self.current_location.creatures.remove(self)
                 next_location = self.current_location.doors[direction]
                 self.current_location = next_location
-
             else:
                 print("no access to " + direction)
                 
@@ -46,7 +59,114 @@ class Pymon:
             
     def get_location(self):
         return self.current_location
-            
+    
+    def chanllenge(self, creature_name, opt):
+        # Find a creature with the specified name in the current location
+        creature = next(
+            (creature for creature in self.current_location.creatures 
+            if creature.get_name().lower() == creature_name.lower()), 
+            None
+        )
+
+        if not creature:
+            # No creature with that name in the current location
+            print(f"There is no creature named {creature_name} here.")
+            return
+        elif not isinstance(creature, Pymon):
+            # Creature found, but it's not a Pymon, so it can't be challenged
+            print(f"{creature_name} cannot be challenged because it is not a Pymon.")
+            return
+        
+        # If the creature is a Pymon, proceed with the challenge
+        print(f"{creature.name} gladly accepted your challenge! Ready for battle!")
+        print("The first Pymon to win 2 of 3 encounters will win the battle")
+
+        # Start battle
+        player_wins = 0
+        opponent_wins = 0
+        encounter = 1
+
+        while player_wins < 2 and opponent_wins < 2 and self.energy > 0 and encounter <=3:
+            print(f"\nEncounter {encounter}!")
+            result = self.battle_encounter()
+
+            if result == "win":
+                player_wins += 1
+                encounter += 1
+            elif result == "lose":
+                opponent_wins += 1
+                self.energy -= 1
+                encounter += 1
+            else:
+                print("This encounter is a draw. Try again.")
+
+
+        # Determine the battle outcome
+        if player_wins >= 2:
+            print(f"\nCongrats! You have won the battle and adopted a new Pymon called {creature.name}!")
+            opt.pet_list.append(creature)  # Add opponent to pet list
+        elif self.energy == 0 or opponent_wins >= 2:
+            print(f"\nYou have lost the battle. {self.name} will be released into the wild.")
+            self.relinquish(opt)
+
+    def battle_encounter(self):
+        shapes = {"r": "rock", "p": "paper", "s": "scissors"}
+        player_choice_key = input("Your turn (r)ock, (p)aper, or (s)cissor?: ").lower()
+
+        if player_choice_key not in shapes:
+            print("Invalid choice! Please select 'r', 'p', or 's'.")
+            return "draw"
+
+        player_choice = shapes[player_choice_key]
+        opponent_choice = random.choice(list(shapes.values()))
+
+        print(f"You issued {player_choice}!")
+        print(f"Your opponent issued {opponent_choice}!")
+
+        # Determine encounter outcome based on game rules
+        if player_choice == opponent_choice:
+            print(f"{player_choice} vs {opponent_choice}: Draw, no one wins")
+            return "draw"
+        elif (player_choice == "rock" and opponent_choice == "scissors") or \
+             (player_choice == "paper" and opponent_choice == "rock") or \
+             (player_choice == "scissors" and opponent_choice == "paper"):
+            print(f"{player_choice} vs {opponent_choice}: {player_choice} wins! You won this encounter.")
+            return "win"
+        else:
+            print(f"{player_choice} vs {opponent_choice}: {opponent_choice} wins! You lost 1 encounter and 1 energy.")
+            return "lose"
+        
+    def relinquish(self, operation):
+        # Remove the current Pymon from the player's pet list
+        if self in operation.pet_list:
+            operation.pet_list.remove(self)
+            print(f"{self.name} has been removed from your pet list.")
+
+        # Remove this Pymon from its current location's creature list
+        if self.current_location is not None:
+            self.current_location.creatures.remove(self)
+            print(f"{self.name} has been removed from {self.current_location.name}.")
+
+        # Select a random new location for this Pymon to move to
+        new_location = random.choice([loc for loc in operation.locations if loc != self.current_location])
+        self.spawn(new_location)  # Use spawn to set the new location and add to the location's creatures
+        print(f"{self.name} has been released into the wild at {new_location.name}.")
+
+        # Check if there are any remaining Pymons in the pet list
+        if operation.pet_list:
+            # Randomly select a new Pymon from the pet list
+            new_pymon = random.choice(operation.pet_list)
+            operation.current_pymon = new_pymon
+
+            # Randomly select a new location for the new current Pymon
+            new_pymon_location = random.choice(operation.locations)
+            new_pymon.spawn(new_pymon_location)
+            print(f"Your new current Pymon is {new_pymon.name} and has been placed at {new_pymon_location.name}.")
+        else:
+            # Game over if no Pymons remain
+            print("Game Over! You have no remaining Pymons.")
+            exit()
+         
 class Location:
     def __init__(self, name = "New room",description = "", w = None, n = None , e = None, s = None):
         self.name = name
@@ -65,9 +185,9 @@ class Location:
         #please implement this method to by simply appending a creature to self.creatures list.
         
     def add_item(self, item):
-        pass
         #please implement this method to by simply appending an item to self.items list.
-        
+        if item not in self.items:
+            self.items.append(item)
     def connect_east(self, another_room):
         self.doors["east"] = another_room 
         another_room.doors["west"]  = self
@@ -90,24 +210,20 @@ class Location:
     def get_description(self):
         return self.description
         
-class Creature:
-    def __init__(self, nickname, description, location=None):
-        self.nickname = nickname
+class Item:
+    def __init__(self, name, description):
+        self.name = name
         self.description = description
-        self.location = location
-
-    def set_location(self, new_location):
-        self.location = new_location
-
-    def get_location(self):
-        return self.location
     def get_name(self):
-        return self.nickname
+        return self.name
+    def get_description(self):
+        return self.description   
 class Record:
     def __init__(self):
         self.locations = []
         self.creatures = []
         #please implement constructor
+        self.items = []
        
 
     def import_location(self):
@@ -142,7 +258,7 @@ class Record:
 
                 south = line_field[5].split(" = ")[1].strip()
                 south = None if south == "None" else south
-                
+
                 new_location = Location(location_name,  description, west, north, east, south)
                 self.locations.append(new_location)
                 location_connect[location_name] = new_location
@@ -185,11 +301,16 @@ class Record:
             line = file.readline()
             while line:
                 line_field = line.strip().split(",")
-                nickname = line_field[0].strip()
+                name = line_field[0].strip()
                 description = line_field[1].strip()
-                location = line_field[2].strip()
-                new_creatures = Creature(nickname, description, location)
-                self.creatures.append(new_creatures)
+                can_be_pymon = line_field[2].strip().lower() == "yes"  # Check if it can be a Pymon
+                # Create a Pymon if can_be_pymon is "yes"; otherwise, create a Creature
+                if can_be_pymon:
+                    new_creature = Pymon(name, description)
+                else:
+                    new_creature = Creature(name, description, can_be_pymon=False)
+                # Add the new creature to the creatures list
+                self.creatures.append(new_creature)
                 line = file.readline()
             file.close()
             return True
@@ -201,14 +322,38 @@ class Record:
                 return self.creatures[i]
             if i == len(self.creatures) - 1:
                 return None
-        
+
     def import_items(self):
-        pass #please import data from items.csv
+        #please import data from items.csv
+        try:
+            filename = 'item.csv'
+            file = open(filename,"r")
+            line = file.readline()
+            while line:
+                line_field = line.strip().split(",")
+                if len(line_field) == 2:
+                    name = line_field[0].strip()
+                    description = line_field[1].strip()
+                    new_item = Item(name, description)
+                    self.items.append(new_item)
+                    line = file.readline()
+            file.close()
+            return True
+        except FileNotFoundError:
+            return False
+    def find_item(self, name):
+        for i in range(len(self.items)):
+            if name == self.items[i].get_name().lower():
+                return self.items[i]
+            if i == len(self.items) - 1:
+                return None
     
 class Operation:
     def __init__(self):
         self.locations = []
         self.current_pymon = Pymon("Kimimon")
+        self.pymon_items = []
+        self.pet_list = [self.current_pymon]                     
    
     def setup(self):
         record = Record()
@@ -223,6 +368,7 @@ class Operation:
 
         # Your Pymon will be placed in the playground initially.
         #self.current_pymon.current_location = record.find_location("playground")
+        #=========== SET UP PASS LEVEL ================
         playground = record.find_location("playground")
         beach = record.find_location("beach")
         school = record.find_location("school")
@@ -235,6 +381,18 @@ class Operation:
         playground.add_creature(kitimon)
         beach.add_creature(sheep)
         school.add_creature(marimon)
+        #=========== SET UP CREDIT LEVEL ================
+        record.import_items()
+        tree = record.find_item("tree")
+        potion = record.find_item("potion")
+        apple = record.find_item("apple")
+        binocular = record.find_item("binocular")
+        
+        playground.add_item(tree)
+        playground.add_item(potion)
+        beach.add_item(apple)
+        school.add_item(binocular)
+        
 
 
     def display_setup(self):
@@ -261,7 +419,10 @@ class Operation:
         print("1) Inspect Pymon")
         print("2) Inspect current location")
         print("3) Move")
-        print("4) Exit the program")
+        print("4) Pick an item")
+        print("5) View Inventory")
+        print("6) Challengr a creature")
+        print("0) Exit the program")
         menu = input("Your command: ")
         self.select_menu(menu)
 
@@ -273,12 +434,28 @@ class Operation:
         elif menu == '3':
             self.move()
         elif menu == '4':
+            self.pick_item()
+        elif menu == '5':
+            pass
+        elif menu == '6':
+            self.challenge_creature()
+        elif menu == '0':
             exit()
         else:
             print("Invalid menu")
     def inspect_pymon(self):
-        print(f"Hi Player, my name is {self.current_pymon.name}, I am white and yellow with a sqare face.")
-        print(f"My energy level is {self.current_pymon.energy}/{self.current_pymon.max_energy}. What can I do to help you?")
+        print("\nInspect Pymon Menu:")
+        print("1) Inspect Current Pymon")
+        print("2) List and select a benched Pymon to use")
+
+        choice = input("Choose an option: ").strip()
+        if choice == '1':
+            print(f"Hi Player, my name is {self.current_pymon.name}, I am white and yellow with a sqare face.")
+            print(f"My energy level is {self.current_pymon.energy}/{self.current_pymon.max_energy}. What can I do to help you?")
+        elif choice == '2':
+            pass
+        else:
+            print("Invalid Menu. Please try again.")
     def inspect_current_location(self):
         print(f"You are at a {self.current_pymon.get_location().get_name()}, {self.current_pymon.get_location().get_description()}")
 
@@ -296,6 +473,12 @@ class Operation:
                 print(f"You traveled {direction} and arrived at {self.current_pymon.get_location().get_name()}.")
         else:
             print("Incorrect direction")
+    def pick_item():
+        pass
+    def challenge_creature(self):
+        creature_name = input("Challenge who: ").strip()
+        self.current_pymon.challenge(creature_name, self)
+
 
 if __name__ == '__main__':
     ops = Operation()
