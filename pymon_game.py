@@ -32,7 +32,7 @@ class Creature:
         self.name = nickname
         self.description = description
         self.can_be_pymon = can_be_pymon
-        self.current_location= current_location
+        self.current_location = current_location
 
     def set_location(self, new_location):
         if new_location is not None:
@@ -89,8 +89,8 @@ class Pymon(Creature):
             loc.add_creature(self)
             self.current_location = loc
             
-    def get_location(self):
-        return self.current_location
+    # def get_location(self):
+    #     return self.current_location
     
     def challenge(self, creature_name, opt):
         # Find a creature with the specified name in the current location
@@ -597,7 +597,7 @@ class Record:
     
 class Operation:
     def __init__(self):
-        self.locations = []
+        #self.locations = []
         self.current_pymon = Pymon("Kimimon", "I am white and yellow with a sqare face.")
         self.inventory = []
         self.pet_list = [self.current_pymon]
@@ -769,7 +769,7 @@ class Operation:
         if user_input.lower() == 'y' or user_input.lower() == 'yes':
             while True:
                 try:
-                    choice = int(input("Select a Pymon to swap with the current one: ").strip())
+                    selected_pymon = (input("Select a Pymon to swap with the current one: ").strip())
                     if 1 <= choice <= len(benched_pymons):
                         # Swap the selected Pymon with the current one
                         selected_pymon = benched_pymons[choice - 1]
@@ -785,6 +785,7 @@ class Operation:
                 except ValueError:
                     print("Invalid input. Please enter a number.")
         else:
+            print("Cancel swap pymon")
             return
     def inspect_current_location(self):
         print(f"You are at a {self.current_pymon.get_location().get_name()}, {self.current_pymon.get_location().get_description()}")
@@ -799,7 +800,6 @@ class Operation:
                 print(f"- {creature.get_name()}: {creature.get_description()}")
         else:
             print("\nNo other creatures reside here.")
-
         # Display items in the current location
         if location.items:
             print("\nItems available in this location:")
@@ -863,58 +863,63 @@ class Operation:
     def save_game(self):
         """ Save the current game"""
         try:
-            filename = input("Enter filename to save game (e.g., save2024.csv): ")
-            with open(filename, "w") as file:
-                # Write a header to clarify sections
-                file.write("Type,Name,Description,Location,West,North,East,South,Extra\n")
+            while True:
+                filename = input("Enter the filename to save the game (must end with .csv) (e.g., save2024.csv): ").strip()
+                # Validate that the filename ends with .csv
+                if not filename.endswith(".csv"):
+                    print("Invalid filename. Please make sure it ends with .csv.")
+                else:
+                    # Proceed with saving the game if the filename is valid
+                    with open(filename, "w") as file:
+                        # Write a header to clarify sections
+                        file.write("Type,Name,Description,Location,West,North,East,South,Extra\n")
 
-                # Save locations with connections
-                for location in self.record.locations:
-                    line = f"Location,{location.name},{location.description},{location.name},"
-                    line += f"{location.doors['west'].get_name() if location.doors['west'] else 'None'},"
-                    line += f"{location.doors['north'].get_name() if location.doors['north'] else 'None'},"
-                    line += f"{location.doors['east'].get_name() if location.doors['east'] else 'None'},"
-                    line += f"{location.doors['south'].get_name() if location.doors['south'] else 'None'},None\n"
-                    file.write(line)
+                        # Save locations with connections
+                        for location in self.record.locations:
+                            line = f"Location,{location.name},{location.description},{location.name},"
+                            line += f"{location.doors['west'].get_name() if location.doors['west'] else 'None'},"
+                            line += f"{location.doors['north'].get_name() if location.doors['north'] else 'None'},"
+                            line += f"{location.doors['east'].get_name() if location.doors['east'] else 'None'},"
+                            line += f"{location.doors['south'].get_name() if location.doors['south'] else 'None'},None\n"
+                            file.write(line)
 
-                # Save creatures and their current location
-                for creature in self.record.creatures:
-                    creature_type = "Pymon" if isinstance(creature, Pymon) else "Creature"
-                    location_name = creature.get_location().name if creature.get_location() else "None"
-                    line = f"{creature_type},{creature.name},{creature.description},{location_name},None,None,None,None,{creature.can_be_pymon}\n"
-                    file.write(line)
+                        # Save creatures and their current location
+                        for creature in self.record.creatures:
+                            creature_type = "Pymon" if isinstance(creature, Pymon) else "Creature"
+                            location_name = creature.get_location().name if creature.get_location() else "None"
+                            line = f"{creature_type},{creature.name},{creature.description},{location_name},None,None,None,None,{creature.can_be_pymon}\n"
+                            file.write(line)
 
-                # Save items and their location (if in the map)
-                for location in self.record.locations:
-                    for item in location.items:
-                        location_name = location.get_name()
-                        line = f"Item,{item.name},{item.description},{location_name},None,None,None,None,{item.pickable},{item.consumable}\n"
-                        file.write(line)
+                        # Save items and their location (if in the map)
+                        for location in self.record.locations:
+                            for item in location.items:
+                                location_name = location.get_name()
+                                line = f"Item,{item.name},{item.description},{location_name},None,None,None,None,{item.pickable},{item.consumable}\n"
+                                file.write(line)
 
-                
-                # Save inventory (items carried by the Pymon)
-                for item in self.inventory:
-                    line = f"InventoryItem,{item.name},{item.description},Inventory,None,None,None,None,{item.pickable},{item.consumable}\n"
-                    file.write(line)
+                        # Save inventory (items carried by the Pymon)
+                        for item in self.inventory:
+                            line = f"InventoryItem,{item.name},{item.description},Inventory,None,None,None,None,{item.pickable},{item.consumable}\n"
+                            file.write(line)
 
-                # Save Pymon's state
-                if self.current_pymon:
-                    pymon_location = self.current_pymon.get_location().name if self.current_pymon.get_location() else "None"
-                    line = f"CurrentPymon,{self.current_pymon.name},{self.current_pymon.description},{pymon_location},None,None,None,None,"
-                    line += f"Energy:{self.current_pymon.energy},MaxEnergy:{self.current_pymon.max_energy},Immunity:{self.current_pymon.immunity}\n"
-                    file.write(line)
+                        # Save Pymon's state
+                        if self.current_pymon:
+                            pymon_location = self.current_pymon.get_location().name if self.current_pymon.get_location() else "None"
+                            line = f"CurrentPymon,{self.current_pymon.name},{self.current_pymon.description},{pymon_location},None,None,None,None,"
+                            line += f"Energy:{self.current_pymon.energy},MaxEnergy:{self.current_pymon.max_energy},Immunity:{self.current_pymon.immunity}\n"
+                            file.write(line)
 
-                # Save battle stats for Pymon
-                for battle in self.current_pymon.stat_battle:
-                    file.write(f"Battle,{battle['opponent']},{battle['timestamp']},None,None,None,None,None,Wins:{battle['wins']},Draws:{battle['draws']},Losses:{battle['losses']}\n")
+                        # Save battle stats for Pymon
+                        for battle in self.current_pymon.stat_battle:
+                            file.write(f"Battle,{battle['opponent']},{battle['timestamp']},None,None,None,None,None,Wins:{battle['wins']},Draws:{battle['draws']},Losses:{battle['losses']}\n")
 
-                # Save captured Pymons in the pet list
-                for pet in self.pet_list:
-                    pet_location = pet.get_location().name if pet.get_location() else "N/A"
-                    file.write(f"Pet,{pet.name},{pet.description},{pet_location},None,None,None,None,Energy:{pet.energy},MaxEnergy:{pet.max_energy},Immunity:{pet.immunity}\n")
-            print(f"Game saved successfully to {filename}.")
-        except FileNotFoundError:
-            print(f"Error: {filename} not found.")
+                        # Save captured Pymons in the pet list
+                        for pet in self.pet_list:
+                            pet_location = pet.get_location().name if pet.get_location() else "N/A"
+                            file.write(f"Pet,{pet.name},{pet.description},{pet_location},None,None,None,None,Energy:{pet.energy},MaxEnergy:{pet.max_energy},Immunity:{pet.immunity}\n")
+                    print(f"Game saved successfully to {filename}.")
+        except InvalidInputFileFormat as e:
+            print(f"Error: {e} at save game.")
 
     def load_game(self):
         """Load the game state from a file."""
@@ -1053,7 +1058,7 @@ class Operation:
                 break
             else:
                 print("Invalid choice. Please enter a number from 1 to 4.")
-                
+
 if __name__ == '__main__':
     ops = Operation()
     # ops.setup()
