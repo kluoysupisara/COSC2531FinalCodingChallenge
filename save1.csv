@@ -1,0 +1,18 @@
+Type,Name,Description,Location,West,North,East,South,Extra
+Location,Playground,an outdoor playground with slide and swing clearly visible.,Playground,School,Beach,None,None,None
+Location,Beach,a wide open white sanded beach with a brown hill on the side.,Beach,None,None,Forrest,Playground,None
+Location,School,a secondary school for local creatures with 3 two-story buildings.,School,None,None,Playground,None,None
+Location,Forrest,a long winding road deep into the green with large trees on the sides.,Forrest,Beach,None,None,Cave,None
+Location,Cave,a dark mysterious cave.,Cave,None,Forrest,None,None,None
+Pymon,Kitimon,large blue and white Pymon wtith yellow fangs,Cave,None,None,None,None,True
+Creature,Sheep,small fluffy animal with interesting curly white fur,Forrest,None,None,None,None,False
+Pymon,Marimon,medium red and yellow Pymon with a cute round face,Cave,None,None,None,None,True
+Pymon,Gumimon,cute orange Pymon with a head like fish,Beach,None,None,None,None,True
+Pymon,Pumamon,large black Pymon that looks like a cat,Cave,None,None,None,None,True
+Creature,Chicken,looks like a food with wings but not edible,School,None,None,None,None,False
+Item,potion,applicable to your skin and will give your Pymon temporary immunity,School,None,None,None,None,True,True
+Item,tree,a standing tree that does nothing much at least for now,School,None,None,None,None,False,False
+Item,binocular,an interesting device to see super far,Forrest,None,None,None,None,True,False
+InventoryItem,apple,an edible green fruit that will boost your energy,Inventory,None,None,None,None,True,True
+CurrentPymon,Kimimon,I am white and yellow with a sqare face.,Playground,None,None,None,None,Energy:3,MaxEnergy:3,Immunity:False
+Pet,Kimimon,I am white and yellow with a sqare face.,Playground,None,None,None,None,Energy:3,MaxEnergy:3,Immunity:False

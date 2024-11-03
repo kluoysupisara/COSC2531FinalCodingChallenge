@@ -35,9 +35,12 @@ class Creature:
         self.current_location= current_location
 
     def set_location(self, new_location):
-        #change current to new location
-        self.current_location = new_location
         if new_location is not None:
+            if self.current_location is not None:
+                #old location remove current creature
+                self.current_location.remove_creature(self)
+            #change current to new location
+            self.current_location = new_location
              # Add to new location's creature
             new_location.add_creature(self) 
 
@@ -58,14 +61,15 @@ class Pymon(Creature):
         self.immunity = False # track magic potion
         self.stat_battle = [] # lsit of store stat battle
     
-    def move(self, direction):
+    def move(self, direction, opt):
         # Check if there is a connected location in the specified direction
         next_location = self.current_location.doors[direction]
         if next_location is not None:
             # Move Pymon to the new location
-            next_location.add_creature(self)  
-            self.current_location.creatures.remove(self)
-            self.current_location = next_location
+            self.set_location(next_location)
+            #next_location.add_creature(self)  
+            #self.current_location.creatures.remove(self)
+            #self.current_location = next_location
             self.move_count += 1
 
             # Decrease energy every 2 moves
@@ -75,7 +79,7 @@ class Pymon(Creature):
 
             # If energy is depleted, Pymon escapes to the wild
             if self.energy <= 0:
-                self.relinquish()
+                self.relinquish(opt)
         else:
             # No connected location in the specified direction
             print(f"No access to {direction}. Pymon remains at {self.current_location.get_name()}.")
@@ -126,10 +130,17 @@ class Pymon(Creature):
                 encounter += 1
                 wins += 1
             elif result == "lose":
-                opponent_wins += 1
-                self.energy -= 1
-                encounter += 1
-                losses += 1
+                if self.immunity:
+                    # Prevent energy loss due to potion
+                    print(f"{self.name} lost the battle but was protected by the potion. No energy lost.")
+                    #reset posion immunity
+                    self.immunity = False
+                else:
+                    print("You lost 1 encounter and 1 energy.")
+                    opponent_wins += 1
+                    self.energy -= 1
+                    encounter += 1
+                    losses += 1
             else:
                 print("This encounter is a draw. Try again.")
                 draws += 1
@@ -173,7 +184,7 @@ class Pymon(Creature):
             print(f"{player_choice} vs {opponent_choice}: {player_choice} wins! You won this encounter.")
             return "win"
         else:
-            print(f"{player_choice} vs {opponent_choice}: {opponent_choice} wins! You lost 1 encounter and 1 energy.")
+            print(f"{player_choice} vs {opponent_choice}: {opponent_choice} wins! ")
             return "lose"
     def record_battle(self, opponent, wins, draws, losses):
         """Record battle results in battle."""
@@ -215,9 +226,12 @@ class Pymon(Creature):
             print(f"{self.name} has been removed from {self.current_location.name}.")
 
         # Select a random new location for this Pymon to move to
-        new_location = random.choice([loc for loc in operation.locations if loc != self.current_location])
+        new_location = random.choice([loc for loc in operation.record.locations if loc != self.current_location])
         self.spawn(new_location)  # Use spawn to set the new location and add to the location's creatures
         print(f"{self.name} has been released into the wild.")
+
+        #reset pymon enerygy
+        self.energy = self.max_energy
 
         # Check if there are any remaining Pymons in the pet list
         if operation.pet_list:
@@ -270,7 +284,8 @@ class Pymon(Creature):
                          if not isinstance(creature, Pymon) 
                             else "another Pymon" 
                             for creature in self.current_location.creatures 
-                            if creature != self ]
+                            if creature != self]
+            creatures_str = ", and".join(creatures) if creatures else "no creature"
             # List connected locations in each direction
             connected_directions = []
             for dir_name, loc in self.current_location.doors.items():
@@ -279,7 +294,7 @@ class Pymon(Creature):
             
             # Prepare a string description of directions
             directions_description = ", and ".join(connected_directions) if connected_directions else "no connected locations"
-            print(f"{creatures}, and {directions_description}.")
+            print(f"{creatures_str}, and {directions_description}.")
         elif direction in self.current_location.doors and self.current_location.doors[direction]:
             location = self.current_location.doors[direction]
             item_location = location.items
@@ -428,7 +443,7 @@ class Record:
         return self.locations
     def find_location(self, name):
         for i in range(len(self.locations)):
-            if name == self.locations[i].get_name().lower():
+            if name.lower() == self.locations[i].get_name().lower():
                 return self.locations[i]
             if i == len(self.locations) - 1:
                 return None
@@ -460,7 +475,7 @@ class Record:
             print(f"File format error: {e}")
     def find_creature(self, name):
         for i in range(len(self.creatures)):
-            if name == self.creatures[i].get_name().lower():
+            if name.lower() == self.creatures[i].get_name().lower():
                 return self.creatures[i]
             if i == len(self.creatures) - 1:
                 return None
@@ -491,7 +506,7 @@ class Record:
             print(f"File format error: {e}")
     def find_item(self, name):
         for i in range(len(self.items)):
-            if name == self.items[i].get_name().lower():
+            if name.lower() == self.items[i].get_name().lower():
                 return self.items[i]
             if i == len(self.items) - 1:
                 return None
@@ -522,13 +537,16 @@ class Record:
             }
 
             with open(filename, "a") as file:
-                file.write(f"{name}, {description}, {west}, {north}, {south}\n")
+                file.write(f"{name}, {description}, {west}, {north}, {east}, {south}\n")
             print(f"Custom location '{name}' added and saved to {filename}.")
+            break
 
 
     def add_custom_creature(self, filename="creatures.csv"):
         """Add a new creature (Pymon or Animal) and save it to the creatures file."""
         while True:
+            print("Enter the location details in the following format:")
+            print("Name, Description, adoptable(yes/no)")
             user_input = input("Enter the new creature (eg., name, description, adoptable(yes/no):")
             parts = [parts.strip() for parts in user_input.split(",")]
 
@@ -549,34 +567,33 @@ class Record:
             
             with open(filename, "a") as file:
                 file.write(f"{name}, {description}, {adoptable}\n")
-            
             print(f"Custom creature '{name}' added and saved to {filename}.")
+            break
 
-    def randomize_connections(self):
-        """Randomly assign connections between locations."""
+    def randomize_locations(self):
+        """Randomly assign connections between locations, ignoring existing connections."""
         directions = ["west", "north", "east", "south"]
+        opposite_direction = {"west": "east", "north": "south", "east": "west", "south": "north"}
 
+        # Clear current connections
         for location in self.locations:
-            # Clear existing connections
             location.doors = {dir_name: None for dir_name in directions}
-            
-            # Randomly select other locations to connect
-            connected_locations = random.sample(self.locations, k=random.randint(1, len(directions)))
-            
-            for i, direction in enumerate(directions):
-                # Skip if we've exhausted the available connections or don't assign every direction
-                if i >= len(connected_locations):
-                    break
-                
-                # Avoid connecting a location to itself
-                other_location = connected_locations[i]
-                if other_location != location:
-                    location.doors[direction] = other_location
-                    # Make reciprocal connection if possible
-                    opposite_direction = {"west": "east", "north": "south", "east": "west", "south": "north"}
-                    other_location.doors[opposite_direction[direction]] = location
+        
+        # Randomly connect locations
+        for location in self.locations:
+            available_directions = random.sample(directions, k=random.randint(1, len(directions)))
+            available_locations = [loc for loc in self.locations if loc != location]
+            random.shuffle(available_locations)
 
-        print("Location connections have been randomized.")
+            for direction in available_directions:
+                if available_locations:
+                    connected_location = available_locations.pop()
+
+                    # Set the connection in the specified direction
+                    location.doors[direction] = connected_location
+                    # Set the reciprocal connection in the opposite direction
+                    connected_location.doors[opposite_direction[direction]] = location
+        print("Locations have been randomly connected.")
     
 class Operation:
     def __init__(self):
@@ -613,9 +630,8 @@ class Operation:
                 break
             elif choice == '2':
                 # Load a saved game
-                filename = input("Enter the filename of the saved game (e.g., save2024.csv): ")
-                self.load_game(filename)
-                self.start_game()
+                if self.load_game():
+                    self.start_game()
                 break
             elif choice == '3':
                 # Enter admin mode
@@ -632,8 +648,6 @@ class Operation:
             a_random_number = generate_random_number(len(self.record.locations)-1)
             spawned_loc = self.record.locations[a_random_number]
             self.current_pymon.spawn(spawned_loc)
-
-            print("Kimimon born at",self.current_pymon.get_location().get_name())
 
             # random item and creatures in locations
             for creature in self.record.creatures:
@@ -687,7 +701,7 @@ class Operation:
             sys.exit(1)
         
     def start_game(self):
-        print("Welcome to Pymon World\n")
+        print("\nWelcome to Pymon World\n")
         print("It's just you and your loyal Pymon roaming around to find more Pymons to capture and adopt.\n")
         print("You started at ",self.current_pymon.get_location().get_name())
         while True:
@@ -702,6 +716,7 @@ class Operation:
         print("5) View Inventory")
         print("6) Challenge a creature")
         print("7) Generate stats")
+        print("8) Save game")
         print("0) Exit the program")
         menu = input("Your command: ")
         self.select_menu(menu)
@@ -721,6 +736,8 @@ class Operation:
             self.challenge_creature()
         elif menu == '7':
             self.generate_stats()
+        elif menu == '8':
+            self.save_game()
         elif menu == '0':
             sys.exit(1)
         else:
@@ -800,7 +817,7 @@ class Operation:
                 print(f"There is no door to the {direction}. Pymon remains at {current_location.get_name()}.")
             else:
                 # Move the Pymon to the new location
-                self.current_pymon.move(direction)
+                self.current_pymon.move(direction, self)
                 print(f"You traveled {direction} and arrived at {self.current_pymon.get_location().get_name()}.")
         else:
             print("Incorrect direction")
@@ -854,23 +871,27 @@ class Operation:
                 # Save locations with connections
                 for location in self.record.locations:
                     line = f"Location,{location.name},{location.description},{location.name},"
-                    line += f"{location.doors['west'] or 'None'},{location.doors['north'] or 'None'},"
-                    line += f"{location.doors['east'] or 'None'},{location.doors['south'] or 'None'},None\n"
+                    line += f"{location.doors['west'].get_name() if location.doors['west'] else 'None'},"
+                    line += f"{location.doors['north'].get_name() if location.doors['north'] else 'None'},"
+                    line += f"{location.doors['east'].get_name() if location.doors['east'] else 'None'},"
+                    line += f"{location.doors['south'].get_name() if location.doors['south'] else 'None'},None\n"
                     file.write(line)
 
                 # Save creatures and their current location
                 for creature in self.record.creatures:
                     creature_type = "Pymon" if isinstance(creature, Pymon) else "Creature"
-                    location_name = creature.get_location().name if creature.get_location() else "N/A"
+                    location_name = creature.get_location().name if creature.get_location() else "None"
                     line = f"{creature_type},{creature.name},{creature.description},{location_name},None,None,None,None,{creature.can_be_pymon}\n"
                     file.write(line)
 
                 # Save items and their location (if in the map)
-                for item in self.record.items:
-                    location_name = item.location.name if hasattr(item, "location") and item.location else "Inventory"
-                    line = f"Item,{item.name},{item.description},{location_name},None,None,None,None,{item.pickable},{item.consumable}\n"
-                    file.write(line)
+                for location in self.record.locations:
+                    for item in location.items:
+                        location_name = location.get_name()
+                        line = f"Item,{item.name},{item.description},{location_name},None,None,None,None,{item.pickable},{item.consumable}\n"
+                        file.write(line)
 
+                
                 # Save inventory (items carried by the Pymon)
                 for item in self.inventory:
                     line = f"InventoryItem,{item.name},{item.description},Inventory,None,None,None,None,{item.pickable},{item.consumable}\n"
@@ -878,8 +899,8 @@ class Operation:
 
                 # Save Pymon's state
                 if self.current_pymon:
-                    pymon_location = self.current_pymon.get_location().name if self.current_pymon.get_location() else "N/A"
-                    line = f"Pymon,{self.current_pymon.name},{self.current_pymon.description},{pymon_location},None,None,None,None,"
+                    pymon_location = self.current_pymon.get_location().name if self.current_pymon.get_location() else "None"
+                    line = f"CurrentPymon,{self.current_pymon.name},{self.current_pymon.description},{pymon_location},None,None,None,None,"
                     line += f"Energy:{self.current_pymon.energy},MaxEnergy:{self.current_pymon.max_energy},Immunity:{self.current_pymon.immunity}\n"
                     file.write(line)
 
@@ -903,7 +924,6 @@ class Operation:
                 next(file)  # Skip header line
                 for line in file:
                     line_field = line.strip().split(",")
-
                     # Parse each saved element
                     item_type = line_field[0]
                     if item_type == "Location":
@@ -923,8 +943,8 @@ class Operation:
                         location_name = line_field[3]
                         can_be_pymon = line_field[8].lower() == "yes"
                         creature = Pymon(name, description) if can_be_pymon else Creature(name, description)
-                        if location_name != "N/A":
-                            location = next((loc for loc in self.record.locations if loc.name == location_name), None)
+                        if location_name != "None":
+                            location = self.record.find_location(location_name)
                             if location:
                                 creature.set_location(location)
                         self.record.creatures.append(creature)
@@ -936,9 +956,9 @@ class Operation:
                         consumable = line_field[9].lower() == "yes"
                         item = Item(name, description, pickable, consumable)
                         if location_name != "Inventory":
-                            location = next((loc for loc in self.record.locations if loc.name == location_name), None)
+                            location = self.record.find_location(location_name)
                             if location:
-                                item.location = location
+                                location.items.append(item)
                         else:
                             self.inventory.append(item)
                         self.record.items.append(item)
@@ -950,7 +970,7 @@ class Operation:
                         item = Item(name, description, pickable, consumable)
                         self.inventory.append(item)
 
-                    elif item_type == "Pymon":
+                    elif item_type == "CurrentPymon":
                         name, description = line_field[1], line_field[2]
                         location_name = line_field[3]
                         energy = int(line_field[8].split(":")[1])
@@ -962,10 +982,12 @@ class Operation:
                         self.current_pymon.max_energy = max_energy
                         self.current_pymon.immunity = immunity
 
-                        if location_name != "N/A":
-                            location = next((loc for loc in self.record.locations if loc.name == location_name), None)
-                            if location:
-                                self.current_pymon.set_location(location)
+                        print("Check location pymon item_type = Pymon:", location_name )
+
+                        if location_name != "None":
+                            location = self.record.find_location(location_name)
+                            print("Check location pymon:", location.get_name())
+                            self.current_pymon.set_location(location)
                         
                         self.pet_list.append(self.current_pymon)
 
@@ -995,10 +1017,11 @@ class Operation:
                                 pet.set_location(location)
 
                         self.pet_list.append(pet)
-
-            print(f"Game loaded successfully from {filename}.")
+                print(f"Game loaded successfully from {filename}.")
+                return True
         except FileNotFoundError:
             print(f"Error: {filename} not found.")
+            return False
 
 
 
@@ -1021,14 +1044,16 @@ class Operation:
                 self.record.add_custom_creature(self.creature_file)
             elif choice == '3':
                 # Randomize location connections
-                self.record.randomize_connections()
+                self.record.randomize_locations()
                 print("Location connections randomized.")
+                # current pymon use bew map
+                #self.current_pymon.current_location = self.record.find_location(self.current_pymon.current_location.get_name())
             elif choice == '4':
                 # Return to main menu
                 break
             else:
                 print("Invalid choice. Please enter a number from 1 to 4.")
-
+                
 if __name__ == '__main__':
     ops = Operation()
     # ops.setup()
