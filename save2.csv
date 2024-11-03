@@ -1,0 +1,22 @@
+Type,Name,Description,Location,West,North,East,South,Extra
+Location,Playground,an outdoor playground with slide and swing clearly visible.,Playground,School,Beach,None,None,None
+Location,Beach,a wide open white sanded beach with a brown hill on the side.,Beach,None,None,Forrest,Playground,None
+Location,School,a secondary school for local creatures with 3 two-story buildings.,School,None,None,Playground,None,None
+Location,Forrest,a long winding road deep into the green with large trees on the sides.,Forrest,Beach,None,None,Cave,None
+Location,Cave,a dark mysterious cave.,Cave,None,Forrest,None,None,None
+Pymon,Kitimon,large blue and white Pymon wtith yellow fangs,School,None,None,None,None,True
+Creature,Sheep,small fluffy animal with interesting curly white fur,Cave,None,None,None,None,False
+Pymon,Marimon,medium red and yellow Pymon with a cute round face,None,None,None,None,None,True
+Pymon,Gumimon,cute orange Pymon with a head like fish,School,None,None,None,None,True
+Pymon,Pumamon,large black Pymon that looks like a cat,School,None,None,None,None,True
+Creature,Chicken,looks like a food with wings but not edible,Forrest,None,None,None,None,False
+Creature,Moodeng,hippopotemouse pinky chick,Playground,None,None,None,None,False
+Item,potion,applicable to your skin and will give your Pymon temporary immunity,Playground,None,None,None,None,True,True
+Item,binocular,an interesting device to see super far,Beach,None,None,None,None,True,False
+Item,tree,a standing tree that does nothing much at least for now,Cave,None,None,None,None,False,False
+InventoryItem,apple,an edible green fruit that will boost your energy,Inventory,None,None,None,None,True,True
+CurrentPymon,Kitimon,large blue and white Pymon wtith yellow fangs,School,None,None,None,None,Energy:3,MaxEnergy:3,Immunity:False
+Battle,marimon,04/11/2024 12:25AM,None,None,None,None,None,Wins:2,Draws:0,Losses:0
+Pet,Kimimon,I am white and yellow with a sqare face.,None,None,None,None,None,Energy:1,MaxEnergy:3,Immunity:False
+Pet,Kitimon,large blue and white Pymon wtith yellow fangs,School,None,None,None,None,Energy:3,MaxEnergy:3,Immunity:False
+Pet,Marimon,medium red and yellow Pymon with a cute round face,None,None,None,None,None,Energy:3,MaxEnergy:3,Immunity:False

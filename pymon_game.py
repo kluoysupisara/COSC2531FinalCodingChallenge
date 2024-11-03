@@ -34,15 +34,27 @@ class Creature:
         self.can_be_pymon = can_be_pymon
         self.current_location = current_location
 
-    def set_location(self, new_location):
+    # def set_location(self, new_location=None):
+    #     if new_location is not None:
+    #         if self.current_location is not None:
+    #             #old location remove current creature
+    #             self.current_location.remove_creature(self)
+    #         #change current to new location
+    #         self.current_location = new_location
+    #          # Add to new location's creature
+    #         new_location.add_creature(self)
+
+    def set_location(self, new_location=None):
+        # Remove from the current location if it exists
+        if self.current_location is not None:
+            self.current_location.remove_creature(self)
+        
+        # Update the current location
+        self.current_location = new_location
+        
+        # Add to the new location if new_location is not None
         if new_location is not None:
-            if self.current_location is not None:
-                #old location remove current creature
-                self.current_location.remove_creature(self)
-            #change current to new location
-            self.current_location = new_location
-             # Add to new location's creature
-            new_location.add_creature(self) 
+            new_location.add_creature(self)
 
     def get_location(self):
         return self.current_location
@@ -88,9 +100,6 @@ class Pymon(Creature):
         if loc != None:
             loc.add_creature(self)
             self.current_location = loc
-            
-    # def get_location(self):
-    #     return self.current_location
     
     def challenge(self, creature_name, opt):
         # Find a creature with the specified name in the current location
@@ -154,7 +163,7 @@ class Pymon(Creature):
             # Remove this Creature from its current location's creature list
             self.current_location.creatures.remove(creature)
             creature.set_location(None)
-            print(f"{self.name} has been removed from {self.current_location.name}.")
+            print(f"{creature.name} has been removed from {self.current_location.name}.")
         elif self.energy == 0 or opponent_wins >= 2:
             print(f"\nYou have lost the battle. {self.name} will be released into the wild.")
             self.relinquish(opt)
@@ -162,6 +171,8 @@ class Pymon(Creature):
 
     def battle_encounter(self):
         shapes = {"r": "rock", "p": "paper", "s": "scissors"}
+        opponent_choice = random.choice(list(shapes.values()))
+        print("opponent_choice:",opponent_choice)
         player_choice_key = input("Your turn (r)ock, (p)aper, or (s)cissor?: ").lower()
 
         if player_choice_key not in shapes:
@@ -169,7 +180,7 @@ class Pymon(Creature):
             return "draw"
 
         player_choice = shapes[player_choice_key]
-        opponent_choice = random.choice(list(shapes.values()))
+        #opponent_choice = random.choice(list(shapes.values()))
 
         print(f"You issued {player_choice}!")
         print(f"Your opponent issued {opponent_choice}!")
@@ -240,7 +251,7 @@ class Pymon(Creature):
             operation.current_pymon = new_pymon
 
             # Randomly select a new location for the new current Pymon
-            new_pymon_location = random.choice(operation.locations)
+            new_pymon_location = random.choice(operation.record.locations)
             new_pymon.spawn(new_pymon_location)
             print(f"Your new current Pymon is {new_pymon.name} and has been placed at {new_pymon_location.name}.")
         else:
@@ -383,7 +394,6 @@ class Record:
         self.import_creatures(creature_file)
         self.import_items(item_file)
 
-    
     def import_locations(self, filename):
         try:
             # Dictionary to map location names to Location objects
@@ -598,9 +608,9 @@ class Record:
 class Operation:
     def __init__(self):
         #self.locations = []
-        self.current_pymon = Pymon("Kimimon", "I am white and yellow with a sqare face.")
+        self.current_pymon = None
         self.inventory = []
-        self.pet_list = [self.current_pymon]
+        self.pet_list = []
         self.record = Record()
 
     def main_menu(self):
@@ -644,6 +654,8 @@ class Operation:
    
     def setup(self):
         try:
+            self.current_pymon = Pymon("Kimimon", "I am white and yellow with a sqare face.")
+            self.pet_list.append(self.current_pymon)
             # random location pymon born
             a_random_number = generate_random_number(len(self.record.locations)-1)
             spawned_loc = self.record.locations[a_random_number]
@@ -757,7 +769,7 @@ class Operation:
             print("Invalid Menu. Please try again.")
     def swap_creature(self):
         #benched_pymons = [pymon for pymon in self.pet_list if pymon != self.current_pymon]
-        benched_pymons = [pymon for pymon in self.pet_list if pymon != self.current_pymon]
+        benched_pymons = [pymon for pymon in self.pet_list if pymon.get_name() != self.current_pymon.get_name()]
 
         if not benched_pymons:
             print("There are no Pymons available to swap with.")
@@ -765,35 +777,50 @@ class Operation:
         print("\nAvailable Pymons in the bench:")
         for idx, pymon in enumerate(benched_pymons, 1):
             print(f"{idx}) {pymon.name} - {pymon.description} (Energy: {pymon.energy}/{pymon.max_energy})")
-        user_input = input("Do you want to swap pymon(y/n)?:")
-        if user_input.lower() == 'y' or user_input.lower() == 'yes':
-            while True:
-                try:
-                    selected_pymon = (input("Select a Pymon to swap with the current one: ").strip())
-                    if 1 <= choice <= len(benched_pymons):
-                        # Swap the selected Pymon with the current one
-                        selected_pymon = benched_pymons[choice - 1]
-                        parent_location = self.current_pymon.get_location()
-
-                        # Set the selected Pymon as the new current Pymon
-                        self.current_pymon = selected_pymon
-                        self.current_pymon.current_location = parent_location
-                        print(f"You have swapped to {self.current_pymon.name} as your active Pymon.")
-                        return
-                    else:
-                        print("Invalid choice. Please select a valid Pymon number.")
-                except ValueError:
-                    print("Invalid input. Please enter a number.")
-        else:
-            print("Cancel swap pymon")
+        # Ask the user if they want to proceed with the swap
+        user_input = input("Do you want to swap Pymon? (y/n): ").strip().lower()
+        if user_input not in ["y", "yes"]:
+            print("Swap canceled. You remain with your current Pymon.")
             return
+
+        while True:
+            selected_pymon_name = input("Enter the name of the Pymon to swap with the current one: ").strip()
+            # Search for the Pymon in the bench by name
+            selected_pymon = next((pymon for pymon in benched_pymons if pymon.name.lower() == selected_pymon_name.lower()), None)
+
+            # if selected_pymon:
+            #     # Swap the selected Pymon with the current one
+            #     parent_location = self.current_pymon.get_location()
+            #     # reset current location old pymon to None
+            #     self.current_pymon.set_location()
+            #     #swap current_pymon to selecteed_pymon
+            #     self.current_pymon = selected_pymon
+            #     self.current_pymon.set_location(parent_location)
+            #     print(f"You have swapped to {self.current_pymon.name} as your active Pymon.")
+            #     return
+            if selected_pymon:
+                # Store the reference to the old Pymon
+                old_pymon = self.current_pymon
+                parent_location = old_pymon.get_location()
+                
+                # Set the old Pymon's location to None
+                old_pymon.set_location(None)
+
+                # Set the selected Pymon as the new current Pymon
+                self.current_pymon = selected_pymon
+                self.current_pymon.set_location(parent_location)
+                
+                print(f"You have swapped to {self.current_pymon.name} as your active Pymon.")
+                return
+            else:
+                print("Invalid name. Please enter the name of an available Pymon.")
     def inspect_current_location(self):
         print(f"You are at a {self.current_pymon.get_location().get_name()}, {self.current_pymon.get_location().get_description()}")
 
         location = self.current_pymon.get_location()
 
         # Display creatures in the current location, excluding the current Pymon itself
-        creatures = [creature for creature in location.creatures if creature != self.current_pymon]
+        creatures = [creature for creature in location.creatures if creature.get_name() != self.current_pymon.get_name()]
         if creatures:
             print("\nCreatures residing here:")
             for creature in creatures:
@@ -844,14 +871,15 @@ class Operation:
             print("You are carrying:")
             for item in self.inventory:
                 print(f"- {item.name}")
-            use = input("Do you want to use an item? (yes/no): ").strip().lower()
-            if use == "yes":
-                item_used = input("Select item to use:")
-                item = next((item for item in self.inventory if item.name.lower() == item_used.lower()), None)
-                if item:
-                    self.current_pymon.use_item(item, self)
-                else:
-                    print(f"Invalid items. You don't have {item_used}.")   
+
+            use = input("Do you want to use an item? (y/n): ").strip().lower()
+            if use not in ["y", "yes"]:
+                print("Use item canceled. Back to main menu.")
+                return
+            item_used = input("Select item to use:")
+            item = next((item for item in self.inventory if item.name.lower() == item_used.lower()), None)
+            if item:
+                self.current_pymon.use_item(item, self)
         else:
             print("Your inventory is empty.")
     def challenge_creature(self):
@@ -868,6 +896,7 @@ class Operation:
                 # Validate that the filename ends with .csv
                 if not filename.endswith(".csv"):
                     print("Invalid filename. Please make sure it ends with .csv.")
+                    continue
                 else:
                     # Proceed with saving the game if the filename is valid
                     with open(filename, "w") as file:
@@ -915,9 +944,10 @@ class Operation:
 
                         # Save captured Pymons in the pet list
                         for pet in self.pet_list:
-                            pet_location = pet.get_location().name if pet.get_location() else "N/A"
+                            pet_location = pet.get_location().name if pet.get_location() else "None"
                             file.write(f"Pet,{pet.name},{pet.description},{pet_location},None,None,None,None,Energy:{pet.energy},MaxEnergy:{pet.max_energy},Immunity:{pet.immunity}\n")
                     print(f"Game saved successfully to {filename}.")
+                    break
         except InvalidInputFileFormat as e:
             print(f"Error: {e} at save game.")
 
@@ -994,7 +1024,7 @@ class Operation:
                             print("Check location pymon:", location.get_name())
                             self.current_pymon.set_location(location)
                         
-                        self.pet_list.append(self.current_pymon)
+                        #self.pet_list.append(self.current_pymon)
 
                     elif item_type == "Battle":
                         opponent = line_field[1]
@@ -1015,13 +1045,9 @@ class Operation:
                         pet.energy = energy
                         pet.max_energy = max_energy
                         pet.immunity = immunity
-
-                        if location_name != "N/A":
-                            location = next((loc for loc in self.record.locations if loc.name == location_name), None)
-                            if location:
-                                pet.set_location(location)
-
+                        pet.set_location()
                         self.pet_list.append(pet)
+
                 print(f"Game loaded successfully from {filename}.")
                 return True
         except FileNotFoundError:
