@@ -8,7 +8,8 @@ Please make modifications to all the classes to match with requirements provided
 @student_id : S4071833
 @highest_level_attempted (P/C/D/HD): HD
 
-- Reflection:
+- Reflection: the most diffucult part in my code is linking between location because location have creature and creature also have location when I swap or move between map. It quite hard for mae. As well as, the loading part and saving part toconnected betwewe
+ 2 functions and the file must be continued swwm like from  start new game. 
 - Reference:
 """
 
@@ -168,8 +169,7 @@ class Pymon(Creature):
 
     def battle_encounter(self):
         shapes = {"r": "rock", "p": "paper", "s": "scissors"}
-        opponent_choice = random.choice(list(shapes.values()))
-        print("opponent_choice:",opponent_choice)
+        #opponent_choice = random.choice(list(shapes.values()))
         player_choice_key = input("Your turn (r)ock, (p)aper, or (s)cissor?: ").lower()
 
         if player_choice_key not in shapes:
@@ -177,7 +177,7 @@ class Pymon(Creature):
             return "draw"
 
         player_choice = shapes[player_choice_key]
-        #opponent_choice = random.choice(list(shapes.values()))
+        opponent_choice = random.choice(list(shapes.values()))
 
         print(f"You issued {player_choice}!")
         print(f"Your opponent issued {opponent_choice}!")
@@ -224,17 +224,14 @@ class Pymon(Creature):
         print(f"Total: W: {total_wins} D: {total_draws} L:{total_losses}")
     def relinquish(self, operation):
         # Remove the current Pymon from the player's pet list
-        print("Test--------------------------------")
-        print("relinquish:",self.name)
         if self in operation.pet_list:
-            print("There are in operation.pet.list")
             operation.pet_list.remove(self)
-            print(f"{self.name} has been removed from your pet list.")
+            #print(f"{self.name} has been removed from your pet list.")
 
         # Remove this Pymon from its current location's creature list
         if self.current_location is not None:
             self.current_location.creatures.remove(self)
-            print(f"{self.name} has been removed from {self.current_location.name}.")
+            #print(f"{self.name} has been removed from {self.current_location.name}.")
 
         # Select a random new location for this Pymon to move to
         new_location = random.choice([loc for loc in operation.record.locations if loc != self.current_location])
@@ -795,11 +792,9 @@ class Operation:
                 # Store reference to the old Pymon and clear its location
                 old_pymon = self.current_pymon
                 parent_location = old_pymon.get_location()
-                print(f"Swapping from {old_pymon.name} to {selected_pymon.name}")
 
                 # Set the old Pymon's location to None and verify
                 old_pymon.set_location(None)
-                print(f"After swap, {old_pymon.name} location: {old_pymon.current_location}")
 
                 # Set the selected Pymon as the new current Pymon
                 
